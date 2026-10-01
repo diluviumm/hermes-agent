@@ -163,6 +163,15 @@ gh api -X POST repos/diluviumm/hermes-agent/actions/workflows/<id>/enable   # pe
 gh api 'repos/diluviumm/hermes-agent/actions/workflows?per_page=100' --jq '.workflows[].id'  # daftar id
 ```
 
+**H. Remote & autentikasi (berlaku sejak 1 Okt 2026):**
+
+| Item | Status |
+|---|---|
+| Protokol remote clone fork | **SSH** — `git@github.com:diluviumm/hermes-agent.git` (origin) + `git@github.com:NousResearch/hermes-agent.git` (upstream). Alasan: fetch/push HTTPS ke GitHub kadang terhambat DPI jaringan; SSH stabil dan tidak butuh kredensial `gh`. |
+| Anti-hang | `core.sshCommand = ssh -o BatchMode=yes -o ConnectTimeout=15 -o ConnectionAttempts=1` (repo-local) + `timeout 90` pada fetch & push di `hermes-agent-fork-sync.sh` → cron tidak pernah menggantung; gagal jaringan = alert, bukan hang. |
+| Autentikasi `gh` (dipakai `fork-pr-monitor`, `gh pr create`, dll.) | Token ada di `~/.hermes/.env` (`GITHUB_TOKEN`). Bila suatu saat `gh auth status` bilang belum login (keyring kosong), pulihkan **tanpa pernah mencetak token**: `gh auth login --hostname github.com --git-protocol https --with-token <<< "$(grep '^GITHUB_TOKEN=' ~/.hermes/.env \| cut -d= -f2-)"` |
+| Verifikasi | `gh auth status` (harus `✓ Logged in … diluviumm`) · `git ls-remote origin main` (harus keluar hash, ±3 detik) |
+
 ---
 
 ## 7. Keputusan konfigurasi di fork ini
