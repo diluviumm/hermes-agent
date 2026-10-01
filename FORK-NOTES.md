@@ -65,9 +65,10 @@ WhatsApp **hanya** saat ada perubahan).
 
         05:20 tiap hari (terpisah)
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│ hermes-agent-fork-sync.sh → fetch upstream → fork main:                      │
-│   ahead=0 → ff-only · ahead>0 → merge --no-edit (commit fork SELAMAT)        │
-│   konflik → ABORT + errors.log (tidak pernah memaksa) → push origin          │
+│ hermes-agent-fork-sync.sh → fetch upstream (SSH, timeout 90) → fork main:    │
+│   behind>0 & ahead=0 → ff-only · ahead>0 → merge --no-edit (fork SELAMAT)     │
+│   konflik → ABORT + errors.log (tak pernah memaksa) · push origin             │
+│   behind=0 & main ≠ origin/main → DORONG commit lokal (push gap tertutup)     │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
