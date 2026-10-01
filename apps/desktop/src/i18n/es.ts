@@ -5460,6 +5460,7 @@ export const esOverrides = {
       branchNewChat: 'Ramificar en chat nuevo',
       react: 'Reaccionar',
       dismissError: 'Descartar error',
+      responseStopped: 'Respuesta detenida',
       errorLayers: {
         auth: 'Problema de inicio de sesión',
         billing: 'Créditos agotados',
@@ -5715,6 +5716,8 @@ export const esOverrides = {
       skipped: 'Omitido',
       noAnswer: 'Sin respuesta',
       confirmAndContinueLabel: 'Confirmar y continuar',
+      singleSelectHint: 'Elige una',
+      multiSelectHint: 'Elige todas las que correspondan',
       questionProgress: (answered, total) => `${answered} de ${total} respondidas`,
       notDelivered:
         'Esta pregunta no llegó a la app, así que no se puede responder aquí. Pulsa Detener para terminar el turno y luego responde en el chat.'

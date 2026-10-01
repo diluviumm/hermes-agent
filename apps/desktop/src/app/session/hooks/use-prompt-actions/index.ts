@@ -1,6 +1,5 @@
 import type { AppendMessage, ThreadMessage } from '@assistant-ui/react'
 import { JsonRpcGatewayError } from '@hermes/shared'
-import { SLASH_COMMAND_RE } from '@hermes/shared'
 import { stripAnsi } from '@hermes/shared/ansi'
 import { useStore } from '@nanostores/react'
 import { type MutableRefObject, useCallback, useEffect, useRef } from 'react'
@@ -9,7 +8,7 @@ import { type ResolvedOwner, transcribeAudio } from '@/hermes'
 import { useI18n } from '@/i18n'
 import { attachmentPathNeedsUpload } from '@/lib/attachment-upload-policy'
 import { type ChatMessage, textPart } from '@/lib/chat-messages'
-import { pathLabel } from '@/lib/chat-runtime'
+import { isSlashCommandText, pathLabel } from '@/lib/chat-runtime'
 import { sanitizeComposerInput } from '@/lib/composer-input-sanitize'
 import { triggerHaptic } from '@/lib/haptics'
 import { setMutableRef } from '@/lib/mutable-ref'
@@ -62,7 +61,7 @@ import {
   applyReloadOptimistic,
   applyRewindOptimistic,
   durableRowIdsForRebind,
-  finalizeUserInterruptedMessages,
+  finalizeStoppedMessages,
   planEdit,
   planReload,
   planRestore,
@@ -632,7 +631,17 @@ export function usePromptActions({
       const visibleText = sanitizeComposerInput(rawText).trim()
       const attachments = options?.attachments ?? $composerAttachments.get()
 
-      if (!attachments.length && SLASH_COMMAND_RE.test(visibleText)) {
+      if (isSlashCommandText(visibleText)) {
+        if (attachments.length) {
+          notify({
+            kind: 'warning',
+            title: copy.slashCommandIgnoredTitle,
+            message: copy.slashCommandIgnoredBody
+          })
+
+          return false
+        }
+
         triggerHaptic('selection')
         // Forward the explicit target (background queue drain, tile) — dropping
         // it ran the command against whatever chat happened to be in front.
@@ -696,7 +705,7 @@ export function usePromptActions({
 
     if (!sessionId) {
       releaseBusy()
-      setMessages(finalizeUserInterruptedMessages($messages.get()))
+      setMessages(finalizeStoppedMessages($messages.get()))
 
       return
     }
@@ -707,7 +716,7 @@ export function usePromptActions({
 
     updateSessionState(sessionId, state => {
       const streamId = state.streamId
-      const messages = finalizeUserInterruptedMessages(state.messages, streamId)
+      const messages = finalizeStoppedMessages(state.messages, streamId)
 
       return {
         ...state,
@@ -1091,6 +1100,7 @@ export function usePromptActions({
             }
 
             const refreshed = $messages.get()
+
             const retryPlan = planRestore(refreshed, messageId, {
               text: target?.text ?? plan.sourceText,
               userOrdinal: target?.userOrdinal ?? plan.truncateOrdinal

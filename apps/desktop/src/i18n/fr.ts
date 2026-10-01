@@ -5482,6 +5482,7 @@ export const frOverrides = {
       branchNewChat: 'Créer une branche dans une nouvelle conversation',
       react: 'Réagir',
       dismissError: "Ignorer l'erreur",
+      responseStopped: 'Réponse interrompue',
       errorLayers: {
         auth: "Erreur d'authentification",
         billing: 'Crédits épuisés',
@@ -5736,6 +5737,8 @@ export const frOverrides = {
       skipped: 'Ignoré',
       noAnswer: 'Pas de réponse',
       confirmAndContinueLabel: 'Confirmer et continuer',
+      singleSelectHint: 'Choisir une réponse',
+      multiSelectHint: 'Choisir toutes les réponses qui s’appliquent',
       questionProgress: (answered, total) => `${answered} réponse${answered === 1 ? '' : 's'} sur ${total}`,
       notDelivered:
         "Cette question n'a pas atteint l'app, elle ne peut donc pas être répondue ici. Appuyez sur Arrêter pour terminer le tour, puis répondez dans le chat."
