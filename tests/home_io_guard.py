@@ -30,6 +30,15 @@ _INTERPRETER_PREFIXES = tuple({
 # resolve once at import, as before: they are fixed for the process lifetime.
 _normcase = os.path.normcase
 _INTERPRETER_PREFIX_STRS = tuple(_normcase(os.fspath(p)) for p in _INTERPRETER_PREFIXES)
+# The payload layout marker a sealed payload ships BESIDE its tree: pm/environments.py probes
+# ``project_root.parent / "manifest.json"`` (``payload_venv``). For a default install the repo sits
+# inside the home, so that path is a SIBLING of the checkout, not inside it, and the checkout
+# exemption above does not cover it. It is a layout probe (``Path.is_file``), not Hermes state.
+# Exempted as an exact path on purpose: a prefix exemption would also exempt the home itself,
+# because ``_contains`` treats a protected path's ancestors as exempt for metadata calls.
+_PAYLOAD_LAYOUT_PROBE_STRS = frozenset({
+    _normcase(os.fspath(Path(__file__).resolve().parent.parent.parent / "manifest.json")),
+})
 
 
 def _within(path: str, prefix: str) -> bool:
@@ -94,6 +103,11 @@ class HomeIOGuard:
                 cwd = os.getcwd() if self._relative_path_entries(path) else None
                 if os.path.dirname(absolute) in self._path_entries(path, cwd):
                     return
+            # The payload layout probe (``<repo parent>/manifest.json``): a metadata-only read that
+            # decides whether this tree ships beside a sealed payload. Only the probe itself is
+            # exempt, and only when nothing is being changed (see _PAYLOAD_LAYOUT_PROBE_STRS).
+            if metadata and not destructive and absolute in _PAYLOAD_LAYOUT_PROBE_STRS:
+                return
             # The interpreter's own installation (a PM-managed python under ~/.hermes/tools):
             # stdlib source reads (linecache, traceback) are not Hermes state either, nor is
             # realpath() walking up through its ancestors.

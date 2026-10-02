@@ -198,6 +198,34 @@ def test_checkout_inside_a_guarded_root_is_not_hermes_state():
         guard.check(PROJECT_ROOT.parent / "config.yaml")
 
 
+def test_payload_layout_probe_beside_the_checkout_is_not_hermes_state():
+    """``pm/environments.py::payload_venv`` probes ``project_root.parent / "manifest.json"`` to
+    decide whether this tree ships beside a sealed payload. For a default install that path is a
+    SIBLING of the checkout, so the checkout exemption does not cover it and any module-level
+    import of ``hermes_bootstrap`` under the guard refuses — which is why an isolated (per-file)
+    cron run from a default install failed while a whole-directory run passed on ``sys.modules``
+    caching order. The probe is a layout marker, not Hermes state, so the metadata read is
+    exempt; the home around it is not."""
+    from tests.home_io_guard import HomeIOGuard, _PAYLOAD_LAYOUT_PROBE_STRS
+
+    probe = (PROJECT_ROOT.parent / "manifest.json").resolve()
+    assert str(probe) in _PAYLOAD_LAYOUT_PROBE_STRS
+
+    guard = HomeIOGuard(lambda: [PROJECT_ROOT.parent])
+    guard.check(probe, metadata=True)  # the layout probe itself: allowed
+
+    # Reading, changing or deleting that manifest is a Hermes-state change, not a layout probe.
+    for kwargs in ({}, {"destructive": True}):
+        with pytest.raises(AssertionError, match="REAL hermes home"):
+            guard.check(probe, **kwargs)
+
+    # The exemption is the probe itself, never the home that contains it.
+    with pytest.raises(AssertionError, match="REAL hermes home"):
+        guard.check(PROJECT_ROOT.parent / "manifest.json.bak", metadata=True)
+    with pytest.raises(AssertionError, match="REAL hermes home"):
+        guard.check(PROJECT_ROOT.parent / "config.yaml", metadata=True)
+
+
 def test_hermes_exported_scratch_tmp_is_not_the_test_temp_root(tmp_path):
     """A Hermes-launched shell hands pytest TMPDIR=<home>/cache/scratch (tagged by
     HERMES_SCRATCH_DIR). With that home guarded, honoring it would put the session
