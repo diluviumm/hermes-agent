@@ -2781,6 +2781,15 @@ def claim_job_for_fire(
                 nxt = compute_next_run(job["schedule"], now.isoformat())
                 if nxt:
                     job["next_run_at"] = nxt
+                    # This occurrence is accounted for by the ledger (it already ran), so the
+                    # tick's pending_slot stamp for it must be dropped here exactly like the
+                    # successful-claim path below. Leaving it set made _restore_unclaimed_slot
+                    # restore the SAME already-completed instant on every tick: the job is due
+                    # again, this dedupe branch consumes it again, the stamp survives again —
+                    # an unbounded re-fire loop that parked a healthy job in last_status=error
+                    # and wrote ~60 failed executions per hour for 3h (2026-10-02 live: job
+                    # 'hindsight-backup', 167 failed rows, all with the same scheduled_instant).
+                    job.pop("pending_slot", None)
                     save_jobs(jobs)
             return False
         if force:
